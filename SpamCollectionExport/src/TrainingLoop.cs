@@ -8,6 +8,7 @@
 //     jamais un match classé / casual / amis / tournoi (garde-fou non désactivable) ;
 //   - refuse de démarrer si le joueur est en file d'attente.
 using System;
+using System.Reflection;
 using Spam.MenuV3;
 using TcgEngine;
 using TcgEngine.Client;
@@ -25,7 +26,7 @@ namespace SpamCollectionExport
         public LoopMode Mode = LoopMode.Training; // type de partie à lancer
         public string DeckId = "";              // "" = deck sélectionné dans le jeu
         public bool RestoreDeckOnStop = true;   // remet le deck d'origine à l'arrêt de la boucle
-        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s). 0 = quitter dès que la partie est prête
+        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s). 0 = quitter dès que la partie est prête. 0 = quitter dès que la partie est prête
         public float EndScreenDelay = 2f;       // attente après une fin de partie normale avant de retourner au menu
         public float DelayBetweenGames = 3f;    // pause au menu entre deux parties
         public int MaxGames = 0;                // 0 = illimité
@@ -56,6 +57,24 @@ namespace SpamCollectionExport
         private readonly Action<string> _warn;
 
         public TrainingLoop(Action<string> log, Action<string> warn) { _log = log; _warn = warn; }
+
+
+        private static void StartMatchmakingViaReflection(PlayManager pm, GameMode mode)
+        {
+            try
+            {
+                var method = typeof(PlayManager).GetMethod(
+                    "StartMatchmakingInternal",
+                    BindingFlags.NonPublic | BindingFlags.Instance
+                );
+                method?.Invoke(pm, new object[] { mode });
+            }
+            catch (Exception e)
+            {
+                _warn($"Réflexion échouée pour StartMatchmakingInternal: {e.Message}");
+            }
+        }
+
 
         public void Toggle()
         {

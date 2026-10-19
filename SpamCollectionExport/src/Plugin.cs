@@ -21,7 +21,7 @@ using Loc = Assets.SimpleLocalization.Scripts.LocalizationManager;
 
 namespace SpamCollectionExport
 {
-    [BepInPlugin("com.yapix.spam.collectionexport", "SPAM Collection Export", "0.5.0")]
+    [BepInPlugin("com.yapix.spam.collectionexport", "SPAM Collection Export", "0.6.0")]
     public partial class Plugin : BaseUnityPlugin
     {
         // --- config : interface
@@ -37,6 +37,7 @@ namespace SpamCollectionExport
         private ConfigEntry<KeyCode> _loopHotkey;
         private ConfigEntry<LoopMode> _loopMode;
         private ConfigEntry<string> _loopDeckId;
+        private ConfigEntry<bool> _loopAllowOnlineModes;
         private ConfigEntry<bool> _loopAllowOnlineModes;
         private ConfigEntry<bool> _loopRestoreDeck;
         private ConfigEntry<float> _loopEndDelay;
@@ -91,6 +92,7 @@ namespace SpamCollectionExport
             _loop.Mode = _loopMode.Value;
             _loop.DeckId = _loopDeckId.Value ?? "";
             _loop.RestoreDeckOnStop = _loopRestoreDeck.Value;
+            _loop.AllowOnlineModes = _loopAllowOnlineModes.Value;
             _loop.AllowOnlineModes = _loopAllowOnlineModes.Value;
             _loop.EndScreenDelay = Mathf.Max(0f, _loopEndDelay.Value);
             _loop.DelayBetweenGames = Mathf.Max(0.5f, _loopDelay.Value);

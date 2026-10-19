@@ -163,7 +163,7 @@ namespace SpamCollectionExport
             GUILayout.Space(8f);
             if (GUILayout.Button("Remettre les valeurs par défaut de la boucle"))
             {
-                ResetEntries(_loopMode, _loopDeckId, _loopRestoreDeck, _loopAllowOnlineModes, _loopResignAfter, _loopEndDelay, _loopDelay,
+                ResetEntries(_loopMode, _loopDeckId, _loopRestoreDeck, _loopAllowOnlineModes, _loopAllowOnlineModes, _loopResignAfter, _loopEndDelay, _loopDelay,
                              _loopMaxGames, _loopMaxFailures, _loopLaunchTimeout, _loopReadyTimeout,
                              _loopLeaveTimeout, _loopRetry, _loopGoMenuCooldown);
             }
