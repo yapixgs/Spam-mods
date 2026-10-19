@@ -1,9 +1,11 @@
-// TrainingLoop — lance une partie (locale ou en ligne), la joue,
+// TrainingLoop — lance une partie locale (entraînement contre l'IA ou Battleground), la joue,
 // et l'abandonne si elle dure trop longtemps ; puis en relance une autre.
 //   - une partie qui se termine avant le délai (victoire / défaite) est simplement suivie d'une relance ;
 //   - une partie qui dépasse le délai est abandonnée, puis on relance.
-//   - Si AllowOnlineModes=false : seul Training/Battleground sont autorisés (parties locales).
-//   - Si AllowOnlineModes=true : Casual et Ranked sont aussi disponibles (attention aux bans).
+// Volontairement limité aux parties locales :
+//   - ne touche jamais au matchmaking (aucun appel à StartMatchmaking / JoinMatchQueue) ;
+//   - n'abandonne une partie que si GameSettings.IsTraining() ou IsBattleground() est vrai,
+//     jamais un match classé / casual / amis / tournoi (garde-fou non désactivable) ;
 //   - refuse de démarrer si le joueur est en file d'attente.
 using System;
 using Spam.MenuV3;
@@ -23,7 +25,7 @@ namespace SpamCollectionExport
         public LoopMode Mode = LoopMode.Training; // type de partie à lancer
         public string DeckId = "";              // "" = deck sélectionné dans le jeu
         public bool RestoreDeckOnStop = true;   // remet le deck d'origine à l'arrêt de la boucle
-        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s). 0 = quitter dès que la partie est prête
+        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s)
         public float EndScreenDelay = 2f;       // attente après une fin de partie normale avant de retourner au menu
         public float DelayBetweenGames = 3f;    // pause au menu entre deux parties
         public int MaxGames = 0;                // 0 = illimité
@@ -33,7 +35,6 @@ namespace SpamCollectionExport
         public float LeaveTimeout = 5f;         // attente après l'abandon avant de forcer le retour menu
         public float RetryInterval = 1f;        // intervalle de ré-essai quand le menu / deck n'est pas prêt
         public float GoMenuCooldown = 5f;       // délai mini entre deux « retour menu » forcés
-        public bool AllowOnlineModes = false;   // autorise l'abandon en Casual/Ranked (désactivé par défaut pour éviter les bans)
 
         public bool Running { get; private set; }
         public int Completed { get; private set; }  // parties terminées (abandonnées + finies)
@@ -192,10 +193,10 @@ namespace SpamCollectionExport
             }
             if (gc.IsObserveMode()) return;
 
-            // Garde-fou : on n'abandonne QUE les parties locales (Training/Battleground).
+            // Garde-fou : on n'abandonne QUE une partie locale (entraînement / Battleground).
             bool local = false;
-            try { local = g.settings != null && (g.settings.IsTraining() || g.settings.IsBattleground()); } catch { } catch { }
-            if (!canResign)
+            try { local = g.settings != null && (g.settings.IsTraining() || g.settings.IsBattleground()); } catch { }
+            if (!local)
             {
                 Stop("la partie en cours n'est pas une partie locale — rien abandonné");
                 return;
@@ -209,19 +210,6 @@ namespace SpamCollectionExport
                 if (_endedAt < 0f) _endedAt = now;
                 Status = "partie terminée";
                 if (now - _endedAt >= EndScreenDelay) GoMenu(now);
-                return;
-            }
-
-            // Si ResignAfter == 0, on quitte immédiatement dès que la partie est prête
-            if (ResignAfter <= 0f)
-            {
-                if (!_resigned)
-                {
-                    _resigned = true;
-                    gc.Resign();
-                    _phase = Phase.Leaving; _phaseSince = now;
-                    Status = "abandon (timer=0)";
-                }
                 return;
             }
 

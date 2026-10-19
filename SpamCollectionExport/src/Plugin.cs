@@ -21,7 +21,7 @@ using Loc = Assets.SimpleLocalization.Scripts.LocalizationManager;
 
 namespace SpamCollectionExport
 {
-    [BepInPlugin("com.yapix.spam.collectionexport", "SPAM Collection Export", "0.6.0")]
+    [BepInPlugin("com.yapix.spam.collectionexport", "SPAM Collection Export", "0.5.0")]
     public partial class Plugin : BaseUnityPlugin
     {
         // --- config : interface
@@ -64,8 +64,7 @@ namespace SpamCollectionExport
 
             _loopHotkey = Config.Bind("training-loop", "hotkey", KeyCode.F9, "Touche pour démarrer/arrêter la boucle lancer-abandonner un entraînement (contre l'IA).");
             _loopMode = Config.Bind("training-loop", "mode", LoopMode.Training, "Type de partie lancée par la boucle : Training (contre l'IA) ou Battleground. Parties locales uniquement.");
-            _loopDeckId = Config.Bind("training-loop", "deckId", "", "Identifiant du deck utilis par la boucle (vide = deck slectionn dans le jeu). Se choisit depuis le menu.");
-            _loopAllowOnlineModes = Config.Bind("training-loop", "allowOnlineModes", false, "Autorise l\'abandon en Casual/Ranked. D\'sactivez UNIQUEMENT si vous comprenez les risques de ban.");
+            _loopDeckId = Config.Bind("training-loop", "deckId", "", "Identifiant du deck utilisé par la boucle (vide = deck sélectionné dans le jeu). Se choisit depuis le menu.");
             _loopRestoreDeck = Config.Bind("training-loop", "restoreDeckOnStop", true, "Remet le deck sélectionné d'origine quand la boucle s'arrête.");
             _loopEndDelay = Config.Bind("training-loop", "endScreenDelay", 2f, "Secondes d'attente à l'écran de fin quand une partie se termine normalement, avant de retourner au menu.");
             _loopDelay = Config.Bind("training-loop", "delayBetweenGames", 3f, "Secondes d'attente au menu entre deux parties.");

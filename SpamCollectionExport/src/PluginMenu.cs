@@ -140,6 +140,7 @@ namespace SpamCollectionExport
                     GUILayout.Label("Le deck choisi n'existe plus : la boucle s'arrêtera au lancement.");
             }
             BoolRow("Remettre le deck d'origine à l'arrêt de la boucle", _loopRestoreDeck);
+
             GUILayout.Space(6f);
             GUILayout.Label("— Durée d'une partie —");
             FloatRow("Abandon si la partie dure plus de (s)", _loopResignAfter, 0f, 7200f, 5f);
@@ -162,8 +163,7 @@ namespace SpamCollectionExport
             GUILayout.Space(8f);
             if (GUILayout.Button("Remettre les valeurs par défaut de la boucle"))
             {
-                ResetEntries(_loopMode, _loopDeckId, _loopRestoreDeck,
-                             _loopResignAfter, _loopEndDelay, _loopDelay,
+                ResetEntries(_loopMode, _loopDeckId, _loopRestoreDeck, _loopResignAfter, _loopEndDelay, _loopDelay,
                              _loopMaxGames, _loopMaxFailures, _loopLaunchTimeout, _loopReadyTimeout,
                              _loopLeaveTimeout, _loopRetry, _loopGoMenuCooldown);
             }
