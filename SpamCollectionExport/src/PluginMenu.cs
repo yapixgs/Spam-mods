@@ -117,7 +117,7 @@ namespace SpamCollectionExport
 
             GUILayout.Space(6f);
             GUILayout.Label("— Mode de jeu —");
-            int mode = GUILayout.Toolbar((int)_loopMode.Value, new[] { "Entraînement (vs IA)", "Battleground" });
+            int mode = GUILayout.Toolbar((int)_loopMode.Value, new[] { "Entraînement (vs IA)", "Battleground", "Casual", "Ranked" });
             if (mode != (int)_loopMode.Value) _loopMode.Value = (LoopMode)mode;
 
             GUILayout.Space(6f);
@@ -140,6 +140,7 @@ namespace SpamCollectionExport
                     GUILayout.Label("Le deck choisi n'existe plus : la boucle s'arrêtera au lancement.");
             }
             BoolRow("Remettre le deck d'origine à l'arrêt de la boucle", _loopRestoreDeck);
+            BoolRow("Autoriser Casual/Ranked (ATTENTION aux bans)", _loopAllowOnlineModes);
 
             GUILayout.Space(6f);
             GUILayout.Label("— Durée d'une partie —");
@@ -163,7 +164,8 @@ namespace SpamCollectionExport
             GUILayout.Space(8f);
             if (GUILayout.Button("Remettre les valeurs par défaut de la boucle"))
             {
-                ResetEntries(_loopMode, _loopDeckId, _loopRestoreDeck, _loopResignAfter, _loopEndDelay, _loopDelay,
+                ResetEntries(_loopMode, _loopDeckId, _loopRestoreDeck, _loopAllowOnlineModes,
+                             _loopResignAfter, _loopEndDelay, _loopDelay,
                              _loopMaxGames, _loopMaxFailures, _loopLaunchTimeout, _loopReadyTimeout,
                              _loopLeaveTimeout, _loopRetry, _loopGoMenuCooldown);
             }
