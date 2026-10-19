@@ -15,7 +15,7 @@ using UnityEngine;
 
 namespace SpamCollectionExport
 {
-    public enum LoopMode { Training, Battleground }
+    public enum LoopMode { Training, Battleground, Casual, Ranked }
 
     internal sealed class TrainingLoop
     {
@@ -25,7 +25,7 @@ namespace SpamCollectionExport
         public LoopMode Mode = LoopMode.Training; // type de partie à lancer
         public string DeckId = "";              // "" = deck sélectionné dans le jeu
         public bool RestoreDeckOnStop = true;   // remet le deck d'origine à l'arrêt de la boucle
-        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s)
+        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s). 0 = quitter dès que la partie est prête
         public float EndScreenDelay = 2f;       // attente après une fin de partie normale avant de retourner au menu
         public float DelayBetweenGames = 3f;    // pause au menu entre deux parties
         public int MaxGames = 0;                // 0 = illimité
@@ -35,6 +35,7 @@ namespace SpamCollectionExport
         public float LeaveTimeout = 5f;         // attente après l'abandon avant de forcer le retour menu
         public float RetryInterval = 1f;        // intervalle de ré-essai quand le menu / deck n'est pas prêt
         public float GoMenuCooldown = 5f;       // délai mini entre deux « retour menu » forcés
+        public bool AllowOnlineModes = false;   // autorise l'abandon en Casual/Ranked (désactivé par défaut pour éviter les bans)
 
         public bool Running { get; private set; }
         public int Completed { get; private set; }  // parties terminées (abandonnées + finies)
@@ -163,8 +164,15 @@ namespace SpamCollectionExport
             if (pm.IsInMatchmaking) { _nextAction = now + RetryInterval * 2f; Status = "en file d'attente : pause"; return; }
 
             _log($"lancement d'une partie ({Mode})");
-            if (Mode == LoopMode.Battleground) pm.StartBattleground();
-            else pm.StartTraining();
+            switch (Mode)
+            {
+                case LoopMode.Training: pm.StartTraining(); break;
+                case LoopMode.Battleground: pm.StartBattleground(); break;
+                case LoopMode.Casual:
+                case LoopMode.Ranked:
+                    pm.StartMatchmaking();
+                    break;
+            }
             _phase = Phase.Launching; _phaseSince = now;
             Status = "lancement";
         }
@@ -193,16 +201,36 @@ namespace SpamCollectionExport
             }
             if (gc.IsObserveMode()) return;
 
-            // Garde-fou : on n'abandonne QUE une partie locale (entraînement / Battleground).
-            bool local = false;
-            try { local = g.settings != null && (g.settings.IsTraining() || g.settings.IsBattleground()); } catch { }
-            if (!local)
+            // Garde-fou : on n'abandonne QUE les modes autorisés.
+            bool canResign = false;
+            try
             {
-                Stop("la partie en cours n'est pas une partie locale — rien abandonné");
+                if (g.settings != null)
+                {
+                    if (g.settings.IsTraining() || g.settings.IsBattleground()) canResign = true;
+                    else if (AllowOnlineModes && (g.settings.IsCasual() || g.settings.IsRanked())) canResign = true;
+                }
+            } catch { }
+            if (!canResign)
+            {
+                Stop("la partie en cours n'est pas un mode abandonnable — rien abandonné");
                 return;
             }
 
             if (_readyAt < 0f) _readyAt = now;
+
+            // Si ResignAfter == 0, on quitte immédiatement dès que la partie est prête
+            if (ResignAfter <= 0f)
+            {
+                if (!_resigned)
+                {
+                    _resigned = true;
+                    gc.Resign();
+                    _phase = Phase.Leaving; _phaseSince = now;
+                    Status = "abandon (timer=0)";
+                }
+                return;
+            }
 
             // Fin normale (tu as gagné ou perdu avant le délai) : on laisse l'écran de fin, puis menu.
             if (g.HasEnded())
