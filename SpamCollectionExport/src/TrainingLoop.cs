@@ -168,9 +168,8 @@ namespace SpamCollectionExport
                 case LoopMode.Battleground: pm.StartBattleground(); break;
                 case LoopMode.Casual:
                 case LoopMode.Ranked:
-                    // Casual et Ranked utilisent StartMatchmaking
-                    // Il faut peut-être configurer le mode avant
-                    pm.StartMatchmaking();
+                    // Casual et Ranked utilisent JoinMatchQueue
+                    pm.JoinMatchQueue();
                     break;
             }
             _phase = Phase.Launching; _phaseSince = now;
@@ -203,12 +202,13 @@ namespace SpamCollectionExport
 
             // Garde-fou : on n'abandonne QUE les modes autorisés.
             bool canResign = false;
+            var pmInGame = UnityEngine.Object.FindFirstObjectByType<PlayManager>(FindObjectsInactive.Include);
             try
             {
                 if (g.settings != null)
                 {
                     if (g.settings.IsTraining() || g.settings.IsBattleground()) canResign = true;
-                    else if (AllowOnlineModes && (g.settings.IsCasual() || g.settings.IsRanked() || pm.IsInMatchmaking)) canResign = true;
+                    else if (AllowOnlineModes && (g.settings.IsCasual() || g.settings.IsRanked() || (pmInGame != null && pmInGame.IsInMatchmaking))) canResign = true;
                 }
             } catch { }
             if (!canResign)
