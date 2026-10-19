@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace SpamCollectionExport
 {
-    public enum LoopMode { Training, Battleground, Casual, Ranked }
+    public enum LoopMode { Training, Battleground }
 
     internal sealed class TrainingLoop
     {
@@ -162,16 +162,8 @@ namespace SpamCollectionExport
             if (pm.IsInMatchmaking) { _nextAction = now + RetryInterval * 2f; Status = "en file d'attente : pause"; return; }
 
             _log($"lancement d'une partie ({Mode})");
-            switch (Mode)
-            {
-                case LoopMode.Training: pm.StartTraining(); break;
-                case LoopMode.Battleground: pm.StartBattleground(); break;
-                case LoopMode.Casual:
-                case LoopMode.Ranked:
-                    // Casual et Ranked utilisent JoinMatchQueue
-                    pm.StartMatchmaking();
-                    break;
-            }
+            if (Mode == LoopMode.Battleground) pm.StartBattleground();
+            else pm.StartTraining();
             _phase = Phase.Launching; _phaseSince = now;
             Status = "lancement";
         }
@@ -200,19 +192,12 @@ namespace SpamCollectionExport
             }
             if (gc.IsObserveMode()) return;
 
-            // Garde-fou : on n'abandonne QUE les modes autorisés.
-            bool canResign = false;
-            try
-            {
-                if (g.settings != null)
-                {
-                    if (g.settings.IsTraining() || g.settings.IsBattleground()) canResign = true;
-                    else if (AllowOnlineModes && (g.settings.IsCasual() || g.settings.IsRanked())) canResign = true;
-                }
-            } catch { }
+            // Garde-fou : on n'abandonne QUE les parties locales (Training/Battleground).
+            bool local = false;
+            try { local = g.settings != null && (g.settings.IsTraining() || g.settings.IsBattleground()); } catch { } catch { }
             if (!canResign)
             {
-                Stop("la partie en cours n'est pas un mode abandonnable — rien abandonné");
+                Stop("la partie en cours n'est pas une partie locale — rien abandonné");
                 return;
             }
 

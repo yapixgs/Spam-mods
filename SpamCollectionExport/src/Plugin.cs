@@ -37,7 +37,6 @@ namespace SpamCollectionExport
         private ConfigEntry<KeyCode> _loopHotkey;
         private ConfigEntry<LoopMode> _loopMode;
         private ConfigEntry<string> _loopDeckId;
-        private ConfigEntry<bool> _loopAllowOnlineModes;
         private ConfigEntry<bool> _loopRestoreDeck;
         private ConfigEntry<float> _loopEndDelay;
         private ConfigEntry<float> _loopDelay, _loopResignAfter, _loopLaunchTimeout, _loopReadyTimeout,
@@ -92,7 +91,6 @@ namespace SpamCollectionExport
             _loop.Mode = _loopMode.Value;
             _loop.DeckId = _loopDeckId.Value ?? "";
             _loop.RestoreDeckOnStop = _loopRestoreDeck.Value;
-            _loop.AllowOnlineModes = _loopAllowOnlineModes.Value;
             _loop.EndScreenDelay = Mathf.Max(0f, _loopEndDelay.Value);
             _loop.DelayBetweenGames = Mathf.Max(0.5f, _loopDelay.Value);
             _loop.ResignAfter = Mathf.Max(0f, _loopResignAfter.Value);
