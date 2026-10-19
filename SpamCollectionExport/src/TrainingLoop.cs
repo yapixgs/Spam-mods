@@ -166,8 +166,12 @@ namespace SpamCollectionExport
             {
                 case LoopMode.Training: pm.StartTraining(); break;
                 case LoopMode.Battleground: pm.StartBattleground(); break;
-                case LoopMode.Casual: pm.StartCasual(); break;
-                case LoopMode.Ranked: pm.StartRanked(); break;
+                case LoopMode.Casual:
+                case LoopMode.Ranked:
+                    // Casual et Ranked utilisent StartMatchmaking
+                    // Il faut peut-être configurer le mode avant
+                    pm.StartMatchmaking();
+                    break;
             }
             _phase = Phase.Launching; _phaseSince = now;
             Status = "lancement";
@@ -204,7 +208,7 @@ namespace SpamCollectionExport
                 if (g.settings != null)
                 {
                     if (g.settings.IsTraining() || g.settings.IsBattleground()) canResign = true;
-                    else if (AllowOnlineModes && (g.settings.IsCasual() || g.settings.IsRanked())) canResign = true;
+                    else if (AllowOnlineModes && (g.settings.IsCasual() || g.settings.IsRanked() || pm.IsInMatchmaking)) canResign = true;
                 }
             } catch { }
             if (!canResign)
