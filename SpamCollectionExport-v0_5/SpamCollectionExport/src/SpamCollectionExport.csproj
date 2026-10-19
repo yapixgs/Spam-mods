@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Plugin BepInEx 5 (Mono) pour SPAM (Unity 6000.3, Mono).
+    Build : dotnet build -c Release
+    Surcharge : -p:GameDir=/chemin/vers/SPAM
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>SpamCollectionExport</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GameDir Condition="'$(GameDir)'==''">$(HOME)/.local/share/Steam/steamapps/common/SPAM</GameDir>
+    <GameManaged Condition="'$(GameManaged)'==''">$(GameDir)/SPAM_Data/Managed</GameManaged>
+    <BepInExCore Condition="'$(BepInExCore)'==''">$(GameDir)/BepInEx/core</BepInExCore>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx"><HintPath>$(BepInExCore)/BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GameManaged)/UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameManaged)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GameManaged)/UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
+    <!-- Menu en jeu (IMGUI) : GUI / GUILayout / Event vivent dans ces modules, pas dans CoreModule. -->
+    <Reference Include="UnityEngine.IMGUIModule" Condition="Exists('$(GameManaged)/UnityEngine.IMGUIModule.dll')"><HintPath>$(GameManaged)/UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule" Condition="Exists('$(GameManaged)/UnityEngine.TextRenderingModule.dll')"><HintPath>$(GameManaged)/UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(GameManaged)/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(GameManaged)/Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
