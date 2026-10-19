@@ -26,7 +26,7 @@ namespace SpamCollectionExport
         public LoopMode Mode = LoopMode.Training; // type de partie à lancer
         public string DeckId = "";              // "" = deck sélectionné dans le jeu
         public bool RestoreDeckOnStop = true;   // remet le deck d'origine à l'arrêt de la boucle
-        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s). 0 = quitter dès que la partie est prête. 0 = quitter dès que la partie est prête
+        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s). 0 = quitter immédiatement. Randomisé entre 75% et 125% pour éviter la détection.. 0 = quitter dès que la partie est prête
         public float EndScreenDelay = 2f;       // attente après une fin de partie normale avant de retourner au menu
         public float DelayBetweenGames = 3f;    // pause au menu entre deux parties
         public int MaxGames = 0;                // 0 = illimité
@@ -260,7 +260,10 @@ namespace SpamCollectionExport
                 return;
             }
 
-            float remaining = ResignAfter - (now - _readyAt);
+            // Randomisation du timer: entre 75% et 125% de ResignAfter
+            // Exemple: ResignAfter=6s → quit entre 4.5s et 7.5s
+            float actualResignAfter = ResignAfter * Random.Range(0.75f, 1.25f);
+            float remaining = actualResignAfter - (now - _readyAt);
             if (remaining > 0f) { Status = "en partie — abandon dans " + Mathf.CeilToInt(remaining) + " s"; return; }
 
             if (!_resigned)
