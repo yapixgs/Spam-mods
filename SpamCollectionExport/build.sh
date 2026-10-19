@@ -36,11 +36,37 @@ log_header() {
 
 # Vérifier que dotnet est installé
 if ! command -v dotnet &> /dev/null; then
-    log_error "dotnet SDK non trouvé. Installez-le depuis https://dotnet.microsoft.com/download"
-    exit 1
+    log_warn "dotnet SDK non trouvé."
+    log_info "Essai avec mono/csc..."
+    
+    # Vérifier mono
+    if ! command -v mono &> /dev/null; then
+        log_error "Ni dotnet ni mono trouvés."
+        log_error "Installez dotnet depuis: https://dotnet.microsoft.com/download"
+        log_error "Ou mono depuis: https://www.mono-project.com/download/stable/"
+        exit 1
+    fi
+    
+    log_info "mono trouvé: $(mono --version | head -1)"
+    
+    # Vérifier csc (compilateur C# de mono)
+    if ! command -v csc &> /dev/null; then
+        csc=$(find /usr -name csc 2>/dev/null | head -1)
+        if [ -z "$csc" ]; then
+            log_error "csc (compilateur C#) non trouvé."
+            log_error "Installez mono-complete: sudo apt install mono-complete"
+            exit 1
+        fi
+        CSC="$csc"
+    else
+        CSC="csc"
+    fi
+    
+    USE_MONO=true
+else
+    log_info "dotnet version: $(dotnet --version)"
+    USE_MONO=false
 fi
-
-log_info "dotnet version: $(dotnet --version)"
 
 # Lire la version du plugin depuis le code source
 VERSION=$(grep -oP '"SPAM Collection Export", \K"[^"]+"' "$SRC_DIR/Plugin.cs" | tr -d '"')
@@ -53,18 +79,71 @@ mkdir -p "$RELEASE_DIR"
 log_info "Nettoyage des anciens builds..."
 rm -rf "$OUT_DIR"/*
 
+# Créer le dossier de sortie
+mkdir -p "$OUT_DIR"
+
 # Build le projet
 log_header "Build du mod SpamCollectionExport v$VERSION"
-log_info "Démarrage du build en configuration Release..."
+log_info "Dossier source: $SRC_DIR"
+log_info "Dossier de sortie: $OUT_DIR"
 
-cd "$SRC_DIR"
-
-# Build avec dotnet
-if dotnet build -c Release; then
-    log_info "Build réussi!"
+if [ "$USE_MONO" = true ]; then
+    log_info "Build avec mono/csc..."
+    
+    # Trouver les références nécessaires
+    GAME_MANAGED="$SCRIPT_DIR/../../Assembly-CSharp.dll"
+    
+    # Si Assembly-CSharp.dll n'est pas dans le repo, on cherche ailleurs
+    if [ ! -f "$GAME_MANAGED" ]; then
+        # Chercher dans les chemins courants
+        if [ -f "$HOME/.local/share/Steam/steamapps/common/SPAM/SPAM_Data/Managed/Assembly-CSharp.dll" ]; then
+            GAME_MANAGED="$HOME/.local/share/Steam/steamapps/common/SPAM/SPAM_Data/Managed/Assembly-CSharp.dll"
+        elif [ -f "/usr/share/SPAM/SPAM_Data/Managed/Assembly-CSharp.dll" ]; then
+            GAME_MANAGED="/usr/share/SPAM/SPAM_Data/Managed/Assembly-CSharp.dll"
+        else
+            log_error "Assembly-CSharp.dll introuvable."
+            log_error "Placez Assembly-CSharp.dll dans le dossier du repo ou installez SPAM."
+            exit 1
+        fi
+    fi
+    
+    log_info "Utilisation de: $GAME_MANAGED"
+    
+    # Compiler avec csc
+    cd "$SRC_DIR"
+    
+    $CSC -target:library \
+        -out:"$OUT_DIR/SpamCollectionExport.dll" \
+        -define:UNITY_2019_4,BEPINEX \
+        -langversion:latest \
+        -reference:"$GAME_MANAGED" \
+        -reference:/usr/lib/mono/4.5/BepInEx.dll \
+        -reference:/usr/lib/mono/4.5/Newtonsoft.Json.dll \
+        -reference:/usr/lib/mono/4.5/UnityEngine.dll \
+        -reference:/usr/lib/mono/4.5/UnityEngine.CoreModule.dll \
+        -reference:/usr/lib/mono/4.5/UnityEngine.IMGUIModule.dll \
+        -reference:/usr/lib/mono/4.5/UnityEngine.InputLegacyModule.dll \
+        -reference:/usr/lib/mono/4.5/UnityEngine.TextRenderingModule.dll \
+        Plugin.cs PluginMenu.cs TrainingLoop.cs
+    
+    if [ $? -eq 0 ]; then
+        log_info "Build mono réussi!"
+    else
+        log_error "Le build mono a échoué"
+        exit 1
+    fi
 else
-    log_error "Le build a échoué"
-    exit 1
+    log_info "Build avec dotnet..."
+    
+    cd "$SRC_DIR"
+    
+    # Build avec dotnet
+    if dotnet build -c Release; then
+        log_info "Build réussi!"
+    else
+        log_error "Le build a échoué"
+        exit 1
+    fi
 fi
 
 # Vérifier que la DLL a été générée
@@ -82,10 +161,16 @@ RELEASE_ZIP="$RELEASE_DIR/${RELEASE_NAME}.zip"
 
 log_info "Création de l'archive de release..."
 cd "$OUT_DIR"
-zip -r "$RELEASE_ZIP" SpamCollectionExport.dll
+zip -r "$RELEASE_ZIP" SpamCollectionExport.dll 2>/dev/null || {
+    log_warn "zip non trouvé, création d'un tarball..."
+    tar -czf "$RELEASE_ZIP" SpamCollectionExport.dll
+}
 cd "$SCRIPT_DIR"
 
 log_info "Archive créée: $RELEASE_ZIP"
+
+# Copier aussi dans le dossier releases
+cp "$DLL_PATH" "$RELEASE_DIR/SpamCollectionExport.dll"
 
 # Vérifier si on a un tag git pour créer une release
 CURRENT_TAG=$(git -C "$SCRIPT_DIR" describe --tags --exact-match 2>/dev/null || true)
