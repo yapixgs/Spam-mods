@@ -1,8 +1,7 @@
 // SpamCollectionExport — exporte la collection SPAM en texte lisible + boucle d'entraînement.
 // Export : lecture seule, lit l'état déjà chargé par le jeu (UserData.PossessedCards,
 // CardData, localisation). Aucune requête réseau, aucune modification.
-// Boucle de parties locales (désactivée par défaut) : voir TrainingLoop.cs. Elle ne concerne que
-// l'entraînement contre l'IA et le Battleground, jamais le matchmaking.
+// Boucle de parties (désactivée par défaut) : voir TrainingLoop.cs.
 // Menu en jeu (F8 par défaut) : voir PluginMenu.cs.
 using System;
 using System.Collections.Generic;
@@ -38,7 +37,6 @@ namespace SpamCollectionExport
         private ConfigEntry<LoopMode> _loopMode;
         private ConfigEntry<string> _loopDeckId;
         private ConfigEntry<bool> _loopAllowOnlineModes;
-        private ConfigEntry<bool> _loopAllowOnlineModes;
         private ConfigEntry<bool> _loopRestoreDeck;
         private ConfigEntry<float> _loopEndDelay;
         private ConfigEntry<float> _loopDelay, _loopResignAfter, _loopLaunchTimeout, _loopReadyTimeout,
@@ -64,13 +62,14 @@ namespace SpamCollectionExport
             _expDecks = Config.Bind("export", "writeDecks", true, "Écrire decks.txt (tous les decks).");
             _expJson = Config.Bind("export", "writeJson", true, "Écrire collection.json (données brutes).");
 
-            _loopHotkey = Config.Bind("training-loop", "hotkey", KeyCode.F9, "Touche pour démarrer/arrêter la boucle lancer-abandonner un entraînement (contre l'IA).");
-            _loopMode = Config.Bind("training-loop", "mode", LoopMode.Training, "Type de partie lancée par la boucle : Training (contre l'IA) ou Battleground. Parties locales uniquement.");
+            _loopHotkey = Config.Bind("training-loop", "hotkey", KeyCode.F9, "Touche pour démarrer/arrêter la boucle lancer-abandonner une partie.");
+            _loopMode = Config.Bind("training-loop", "mode", LoopMode.Training, "Type de partie lancée par la boucle : Training (vs IA), Battleground, Casual ou Ranked.");
             _loopDeckId = Config.Bind("training-loop", "deckId", "", "Identifiant du deck utilisé par la boucle (vide = deck sélectionné dans le jeu). Se choisit depuis le menu.");
             _loopRestoreDeck = Config.Bind("training-loop", "restoreDeckOnStop", true, "Remet le deck sélectionné d'origine quand la boucle s'arrête.");
+            _loopAllowOnlineModes = Config.Bind("training-loop", "allowOnlineModes", false, "Autorise l'abandon en Casual/Ranked. Désactivez UNIQUEMENT si vous comprenez les risques de ban.");
             _loopEndDelay = Config.Bind("training-loop", "endScreenDelay", 2f, "Secondes d'attente à l'écran de fin quand une partie se termine normalement, avant de retourner au menu.");
             _loopDelay = Config.Bind("training-loop", "delayBetweenGames", 3f, "Secondes d'attente au menu entre deux parties.");
-            _loopResignAfter = Config.Bind("training-loop", "resignAfterSeconds", 3f, "Durée de jeu maximale (en secondes) : au-delà, la partie est abandonnée puis une nouvelle est lancée. Une partie finie avant ce délai est juste suivie d'une relance.");
+            _loopResignAfter = Config.Bind("training-loop", "resignAfterSeconds", 3f, "Durée de jeu maximale (en secondes) : au-delà, la partie est abandonnée puis une nouvelle est lancée. Une partie finie avant ce délai est juste suivie d'une relance. 0 = quitter dès que la partie est prête.");
             _loopMaxGames = Config.Bind("training-loop", "maxGames", 0, "Nombre de parties avant arrêt automatique (0 = illimité).");
             _loopMaxFailures = Config.Bind("training-loop", "maxConsecutiveFailures", 5, "Arrêt après N lancements ratés de suite.");
             _loopLaunchTimeout = Config.Bind("training-loop", "launchTimeout", 15f, "Secondes max pour entrer en partie après le lancement.");
@@ -81,7 +80,7 @@ namespace SpamCollectionExport
 
             _loop = new TrainingLoop(m => Logger.LogInfo("training-loop: " + m), m => Logger.LogWarning("training-loop: " + m));
             SyncLoopSettings();
-            Logger.LogInfo($"collection-export: prêt, sortie = {OutDir}, menu = {_menuHotkey.Value}, boucle = {_loopHotkey.Value}");
+            Logger.LogInfo($"collection-export v0.6.0: prêt, sortie = {OutDir}, menu = {_menuHotkey.Value}, boucle = {_loopHotkey.Value}");
         }
 
         private string OutDir => string.IsNullOrEmpty(_outDir.Value)
@@ -92,7 +91,6 @@ namespace SpamCollectionExport
             _loop.Mode = _loopMode.Value;
             _loop.DeckId = _loopDeckId.Value ?? "";
             _loop.RestoreDeckOnStop = _loopRestoreDeck.Value;
-            _loop.AllowOnlineModes = _loopAllowOnlineModes.Value;
             _loop.AllowOnlineModes = _loopAllowOnlineModes.Value;
             _loop.EndScreenDelay = Mathf.Max(0f, _loopEndDelay.Value);
             _loop.DelayBetweenGames = Mathf.Max(0.5f, _loopDelay.Value);
@@ -326,7 +324,7 @@ namespace SpamCollectionExport
             return sb.ToString();
         }
 
-        // Description avec les valeurs chiffrées (dégâts, soins, %…) ; repli sur le texte brut.
+        // Description avec les valeurs chiffrées (dégâts, soins, %) ; repli sur le texte brut.
         private static string Desc(AbilityData a)
         {
             string d;
@@ -337,7 +335,8 @@ namespace SpamCollectionExport
 
         private static readonly Regex Dup = new Regex(@"\b(\p{L}+)\[\1\]", RegexOptions.Compiled);
         private static readonly Regex Spaces = new Regex(@"\s{2,}", RegexOptions.Compiled);
-        private static readonly Regex Tags = new Regex("<[^>]+>", RegexOptions.Compiled);
+        private static readonly Regex Tags = new Regex("<[^>]+"
+, RegexOptions.Compiled);
         private static string Clean(string s) => Spaces.Replace(Dup.Replace(Tags.Replace(s ?? "", "").Replace("\n", " "), "$1"), " ").Trim();
 
         private static string Safe(Func<string> f)

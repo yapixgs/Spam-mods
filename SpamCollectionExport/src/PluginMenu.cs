@@ -16,7 +16,7 @@ namespace SpamCollectionExport
         private const int WindowId = 742731;
         private bool _menuOpen;
         private bool _typing;                       // un champ texte du menu a le focus
-        private ConfigEntry<KeyCode> _rebinding;    // touche en cours de réassignation
+        private ConfigEntry<KeyCode> _rebinding;    // touche en cours de réassignment
         private Rect _win = new Rect(40f, 40f, 500f, 580f);
         private int _tab;
         private Vector2 _scroll;
@@ -26,7 +26,7 @@ namespace SpamCollectionExport
         {
             var ev = Event.current;
 
-            // Capture de la prochaine touche pour une réassignation
+            // Capture de la prochaine touche pour une réassignment
             if (_rebinding != null && ev != null && ev.type == EventType.KeyDown && ev.keyCode != KeyCode.None)
             {
                 if (ev.keyCode != KeyCode.Escape) _rebinding.Value = ev.keyCode;
@@ -110,7 +110,7 @@ namespace SpamCollectionExport
             GUILayout.Label("État : " + _loop.Status);
             GUILayout.Label(_loop.Completed + " parties : " + _loop.Abandoned + " abandonnées (trop longues), " + _loop.Finished + " terminées normalement");
             if (GUILayout.Button(_loop.Running ? "Arrêter la boucle" : "Démarrer la boucle")) _loop.Toggle();
-            GUILayout.Label("Parties locales uniquement (jamais de matchmaking). Une partie qui n'est pas locale n'est jamais abandonnée (garde-fou non modifiable).");
+            GUILayout.Label("Parties locales par défaut. Activez AllowOnlineModes pour Casual/Ranked (⚠️ risque de ban).");
 
             GUILayout.Space(6f);
             KeyRow("Touche démarrer / arrêter", _loopHotkey);
@@ -140,6 +140,7 @@ namespace SpamCollectionExport
                     GUILayout.Label("Le deck choisi n'existe plus : la boucle s'arrêtera au lancement.");
             }
             BoolRow("Remettre le deck d'origine à l'arrêt de la boucle", _loopRestoreDeck);
+            BoolRow("Autoriser Casual/Ranked (⚠️ ATTENTION aux bans)", _loopAllowOnlineModes);
 
             GUILayout.Space(6f);
             GUILayout.Label("— Durée d'une partie —");
@@ -163,7 +164,7 @@ namespace SpamCollectionExport
             GUILayout.Space(8f);
             if (GUILayout.Button("Remettre les valeurs par défaut de la boucle"))
             {
-                ResetEntries(_loopMode, _loopDeckId, _loopRestoreDeck, _loopAllowOnlineModes, _loopAllowOnlineModes, _loopResignAfter, _loopEndDelay, _loopDelay,
+                ResetEntries(_loopMode, _loopDeckId, _loopRestoreDeck, _loopAllowOnlineModes, _loopResignAfter, _loopEndDelay, _loopDelay,
                              _loopMaxGames, _loopMaxFailures, _loopLaunchTimeout, _loopReadyTimeout,
                              _loopLeaveTimeout, _loopRetry, _loopGoMenuCooldown);
             }

@@ -1,11 +1,9 @@
-// TrainingLoop — lance une partie locale (entraînement contre l'IA ou Battleground), la joue,
+// TrainingLoop — lance une partie (locale ou en ligne), la joue,
 // et l'abandonne si elle dure trop longtemps ; puis en relance une autre.
 //   - une partie qui se termine avant le délai (victoire / défaite) est simplement suivie d'une relance ;
 //   - une partie qui dépasse le délai est abandonnée, puis on relance.
-// Volontairement limité aux parties locales :
-//   - ne touche jamais au matchmaking (aucun appel à StartMatchmaking / JoinMatchQueue) ;
-//   - n'abandonne une partie que si GameSettings.IsTraining() ou IsBattleground() est vrai,
-//     jamais un match classé / casual / amis / tournoi (garde-fou non désactivable) ;
+//   - Si AllowOnlineModes=false : seul Training/Battleground sont autorisés (parties locales).
+//   - Si AllowOnlineModes=true : Casual et Ranked sont aussi disponibles (attention aux bans).
 //   - refuse de démarrer si le joueur est en file d'attente.
 using System;
 using System.Reflection;
@@ -26,7 +24,7 @@ namespace SpamCollectionExport
         public LoopMode Mode = LoopMode.Training; // type de partie à lancer
         public string DeckId = "";              // "" = deck sélectionné dans le jeu
         public bool RestoreDeckOnStop = true;   // remet le deck d'origine à l'arrêt de la boucle
-        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s). 0 = quitter immédiatement. Randomisé entre 75% et 125% pour éviter la détection.. 0 = quitter dès que la partie est prête
+        public float ResignAfter = 3f;          // durée de jeu max avant d'abandonner (s). 0 = quitter dès que la partie est prête
         public float EndScreenDelay = 2f;       // attente après une fin de partie normale avant de retourner au menu
         public float DelayBetweenGames = 3f;    // pause au menu entre deux parties
         public int MaxGames = 0;                // 0 = illimité
@@ -58,7 +56,6 @@ namespace SpamCollectionExport
 
         public TrainingLoop(Action<string> log, Action<string> warn) { _log = log; _warn = warn; }
 
-
         private static void StartMatchmakingViaReflection(PlayManager pm, GameMode mode)
         {
             try
@@ -71,10 +68,9 @@ namespace SpamCollectionExport
             }
             catch (Exception e)
             {
-                _warn($"Réflexion échouée pour StartMatchmakingInternal: {e.Message}");
+                Debug.LogWarning($"[SpamCollectionExport] Réflexion échouée pour StartMatchmakingInternal: {e.Message}");
             }
         }
-
 
         public void Toggle()
         {
@@ -188,8 +184,10 @@ namespace SpamCollectionExport
                 case LoopMode.Training: pm.StartTraining(); break;
                 case LoopMode.Battleground: pm.StartBattleground(); break;
                 case LoopMode.Casual:
+                    StartMatchmakingViaReflection(pm, GameMode.Casual);
+                    break;
                 case LoopMode.Ranked:
-                    pm.StartMatchmaking();
+                    StartMatchmakingViaReflection(pm, GameMode.Ranked);
                     break;
             }
             _phase = Phase.Launching; _phaseSince = now;
@@ -262,7 +260,7 @@ namespace SpamCollectionExport
 
             // Randomisation du timer: entre 75% et 125% de ResignAfter
             // Exemple: ResignAfter=6s → quit entre 4.5s et 7.5s
-            float actualResignAfter = ResignAfter * Random.Range(0.75f, 1.25f);
+            float actualResignAfter = ResignAfter * UnityEngine.Random.Range(0.75f, 1.25f);
             float remaining = actualResignAfter - (now - _readyAt);
             if (remaining > 0f) { Status = "en partie — abandon dans " + Mathf.CeilToInt(remaining) + " s"; return; }
 
